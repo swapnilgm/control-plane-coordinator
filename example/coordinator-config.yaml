@@ -1,0 +1,11 @@
+
+#LookupDNS defines the actual DNS address to keep eye on.
+lookupDNS: api.example.com
+#ExpectedDNSRecordValue specifies the value to look for in DNS query response on <LookupDNS>.
+expectedDNSRecordValue: "1.2.3.4"
+#LogLevel is the level/severity for the logs. Must be one of [info,debug,error].
+logLevel: 4
+#Server defines the configuration of the HTTP server.
+server: 
+  bindAddress: "0.0.0.0"
+  port: 8080
