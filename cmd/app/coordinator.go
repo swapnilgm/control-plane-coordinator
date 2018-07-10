@@ -18,11 +18,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/gardener/control-plane-coordinator/pkg/componentconfig"
+	"github.com/gardener/control-plane-coordinator/pkg/dns"
 	"github.com/gardener/control-plane-coordinator/pkg/server"
 	"github.com/gardener/control-plane-coordinator/pkg/server/handler"
-	"github.com/gardener/control-plane-coordinator/pkg/version"
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -83,27 +84,27 @@ func (o *Options) validate(args []string) error {
 	return nil
 }
 
+// applyDefaults applies the default values to component configurations
 func (o *Options) applyDefaults(in *componentconfig.CoordinatorConfiguration) (*componentconfig.CoordinatorConfiguration, error) {
-	//TODO
+	componentconfig.SetDefaultsCoordinatorConfiguration(in)
 	return in, nil
 }
 
 func (o *Options) run(stopCh <-chan struct{}) error {
-
 	if len(o.ConfigFile) > 0 {
-		c, err := o.loadConfigFromFile(o.ConfigFile)
+		config, err := o.loadConfigFromFile(o.ConfigFile)
 		if err != nil {
 			return err
 		}
-		o.config = c
+		o.config = config
 	}
 
-	coord, err := newCoordinator(o.config)
+	c, err := newCoordinator(o.config)
 	if err != nil {
 		return err
 	}
 
-	return coord.Run(stopCh)
+	return c.Run(stopCh)
 }
 
 // NewCommandStartCoordinator creates a *cobra.Command object with default parameters
@@ -157,8 +158,6 @@ func newCoordinator(config *componentconfig.CoordinatorConfiguration) (*Coordina
 	// Initialize logger
 	logger := logrus.New()
 	logger.SetLevel(logrus.Level(config.LogLevel))
-	logger.Infof("Control plane coordinator version: %s", version.Version)
-	logger.Info("Starting Control plane coordinator...")
 
 	return &Coordinator{
 		Config: config,
@@ -170,22 +169,34 @@ func newCoordinator(config *componentconfig.CoordinatorConfiguration) (*Coordina
 func (c *Coordinator) Run(stopCh <-chan struct{}) error {
 	// Start HTTP server
 	go server.Serve(c.Config.Server.BindAddress, c.Config.Server.Port)
-	handler.UpdateHealth(true)
+	handler.UpdateHealth(false)
+	for {
+		c.Logger.Infof("In for loop")
+		select {
+		case <-stopCh:
+			c.Logger.Infof("Received stop signal.\nTerminating...\nGood bye!")
+			return nil
+		case <-time.After(10 * time.Second):
+			valid, err := dns.ValidateDNSWithCname(c.Config.LookupEndpoint, c.Config.ExpectedCname)
+			if err != nil {
+				c.Logger.Errorf("failed to validate the DNS resolution: %v", err)
+				valid = false
+			}
 
-	select {
-	case <-stopCh:
-		c.Logger.Infof("Received stop signal.\nTerminating... \nGood bye!")
-		return nil
+			if valid {
+				c.Logger.Infof("Lookup DNS %s resolved to expected value. Nothing to be done.", c.Config.LookupEndpoint)
+				handler.UpdateHealth(true)
+			} else {
+				c.Logger.Infof("Lookup DNS %s didn't resolved to expected value %s.", c.Config.LookupEndpoint, c.Config.ExpectedCname)
+				handler.UpdateHealth(false)
+			}
+		}
 	}
 }
 
 // applyEnvironmentToConfig checks for several well-defined environment variables and if they are set,
 // it sets the value of the respective keys of <config> to the values in the environment.
-// Currently unimplemented environment variables:
-// KUBECONFIG can override config.ClientConnection.KubeConfigFile
+
 func applyEnvironmentToConfig(config *componentconfig.CoordinatorConfiguration) {
-	//TODO
-	/*if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
-		config.ClientConnection.KubeConfigFile = kubeconfig
-	}*/
+	return
 }
