@@ -1,11 +1,18 @@
 
-#LookupDNS defines the actual DNS address to keep eye on.
-lookupDNS: api.example.com
-#ExpectedDNSRecordValue specifies the value to look for in DNS query response on <LookupDNS>.
-expectedDNSRecordValue: "1.2.3.4"
+# LookupDNS defines the actual DNS address to keep eye on.
+lookupEndpoint: www.example.com
+#lookupDNS: api.etcdbr.ci-test.shoot.dev.k8s-hana.ondemand.com
+# expectedIp specifies the value to look for in DNS query response on <LookupDNS>.
+expectedIp: "1.2.3.4"
+# kubeconfigFile is the path to a kubeconfig file.
+kubeconfig: "~/.kube/config"
+# Service specifies the name of the service to watch for
+Service: "kube-apiserver"
+# watchNamespace specifies the namespace to watch for control plane components
+watchNamespace: "default"
 #LogLevel is the level/severity for the logs. Must be one of [info,debug,error].
 logLevel: 4
 #Server defines the configuration of the HTTP server.
 server: 
-  bindAddress: "0.0.0.0"
+  bindAddress: "localhost"
   port: 8080

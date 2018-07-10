@@ -16,14 +16,22 @@ package componentconfig
 
 // CoordinatorConfiguration contains configuration of coordinator component.
 type CoordinatorConfiguration struct {
-	// LookupDNS defines the actual DNS address to keep eye on.
-	LookupDNS string `json:"lookupDNS"`
-	// ExpectedDNSRecordValue specifies the value to look for in DNS query response on <LookupDNS>.
-	ExpectedDNSRecordValue string `json:"expectedDNSValue"`
+	// LookupEndpoint defines the actual DNS address to keep eye on.
+	LookupEndpoint string `json:"lookupEndpoint"`
+	// ExpectedIP specifies the value to look for in DNS query response on <LookupDNS>.
+	ExpectedIP string `json:"expectedIP"`
 	// LogLevel is the level/severity for the logs. Must be one of [info,debug,error].
 	LogLevel uint `json:"logLevel"`
 	// Server defines the configuration of the HTTP server.
 	Server ServerConfiguration `json:"server"`
+	// KubeconfigFile is the path to a kubeconfig file.
+	KubeconfigFile string `json:"kubeconfig"`
+	// WatchNamespace specifies the namespace to watch for control plane components
+	WatchNamespace string `json:"watchNamespace"`
+	// Service specifies the name of the service to watch for
+	Service string `json:"service"`
+	// TODO
+	// ConcurrentSyncs int `json:"concurrentSyncs"
 }
 
 // ServerConfiguration contains details for the HTTP server.
